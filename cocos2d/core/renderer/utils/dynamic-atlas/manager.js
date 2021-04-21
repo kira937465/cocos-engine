@@ -146,7 +146,13 @@ let dynamicAtlasManager = {
             atlas = newAtlas();
         }
 
-        let frame = atlas.insertSpriteFrame(spriteFrame);
+        // 如果能从当前图集中找到相同_uuid的图集块，则重用
+        let frame = atlas.fetchSpriteFrame(spriteFrame);
+        if (frame) {
+            return frame;
+        }
+
+        frame = atlas.insertSpriteFrame(spriteFrame);
         if (!frame && _atlasIndex !== _maxAtlasCount) {
             atlas = newAtlas();
             return atlas.insertSpriteFrame(spriteFrame);

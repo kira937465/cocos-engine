@@ -28,7 +28,7 @@ cc.js.mixin(Atlas.prototype, {
     insertSpriteFrame (spriteFrame) {
         let rect = spriteFrame._rect,
             texture = spriteFrame._texture,
-            info = this._innerTextureInfos[texture._id];
+            info = this._innerTextureInfos[texture._uuid];
 
         let sx = rect.x, sy = rect.y;
 
@@ -70,7 +70,7 @@ cc.js.mixin(Atlas.prototype, {
 
             this._texture.drawTextureAt(texture, this._x, this._y);
 
-            this._innerTextureInfos[texture._id] = {
+            this._innerTextureInfos[texture._uuid] = {
                 x: this._x,
                 y: this._y,
                 texture: texture
@@ -97,6 +97,24 @@ cc.js.mixin(Atlas.prototype, {
         return frame;
     },
 
+    fetchSpriteFrame(spriteFrame) {
+        let texture = spriteFrame._texture;
+        let info = this._innerTextureInfos[texture._uuid];
+        if (!info) {
+            return null;
+        }
+
+        let rect = spriteFrame._rect;
+        let sx = rect.x + info.x, sy = rect.y + info.y;
+        let frame = {
+            x: sx,
+            y: sy,
+            texture: this._texture
+        };
+
+        return frame;
+    },
+
     update () {
         if (!this._dirty) return;
         this._texture.update();
@@ -104,8 +122,8 @@ cc.js.mixin(Atlas.prototype, {
     },
 
     deleteInnerTexture (texture) {
-        if (texture && this._innerTextureInfos[texture._id]) {
-            delete this._innerTextureInfos[texture._id];
+        if (texture && this._innerTextureInfos[texture._uuid]) {
+            delete this._innerTextureInfos[texture._uuid];
             this._count--;
         }
     },
