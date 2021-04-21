@@ -338,11 +338,14 @@ export default class TTFAssembler extends Assembler2D {
     _calDynamicAtlas (comp) {
         if(comp.cacheMode !== Label.CacheMode.BITMAP) return;
         let frame = comp._frame;
-        // Delete cache in atlas.
-        deleteFromDynamicAtlas(comp, frame);
+        // Fixme: 不再频繁从自动图集中删除
+        // // Delete cache in atlas.
+        // deleteFromDynamicAtlas(comp, frame);
         if (!frame._original) {
             frame.setRect(cc.rect(0, 0, _canvas.width, _canvas.height));
         }
+        // 给frame的texture计算一个新的_uuid值
+        frame._texture._uuid = comp.string + "_" + comp.node.color + "_" + comp.fontSize + comp.fontFamily;
         this.packToDynamicAtlas(comp, frame);
     }
 
