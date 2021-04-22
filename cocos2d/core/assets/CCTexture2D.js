@@ -956,11 +956,13 @@ var Texture2D = cc.Class({
         }
 
         let w = this.width, h = this.height;
-        if (!this._image ||
-            w > dynamicAtlas.maxFrameSize || h > dynamicAtlas.maxFrameSize || 
+        let maxFrameSize = dynamicAtlas.getMaxFrameSize(this["myTag"]);
+        if (!this._image || w > maxFrameSize || h > maxFrameSize || 
             this._getHash() !== dynamicAtlas.Atlas.DEFAULT_HASH) {
             this._packable = false;
             return;
+        } else if (this._image && w <= maxFrameSize && h <= maxFrameSize && this._getHash() === dynamicAtlas.Atlas.DEFAULT_HASH) {
+            this._packable = true;
         }
 
         if (this._image && this._image instanceof HTMLCanvasElement) {

@@ -1,7 +1,7 @@
 const Atlas = require('./atlas');
 
-let _atlases = [];
-let _atlasIndex = -1;
+let _atlasesMap = {};
+let _maxFrameSizeMap = { "default": _maxFrameSize };
 
 let _maxAtlasCount = 5;
 let _textureSize = 2048;
@@ -10,17 +10,37 @@ let _textureBleeding = true;
 
 let _debugNode = null;
 
-function newAtlas () {
-    let atlas = _atlases[++_atlasIndex]
-    if (!atlas) {
-        atlas = new Atlas(_textureSize, _textureSize);
-        _atlases.push(atlas);
+function newAtlas (atlasTag) {
+    let atlas = new Atlas(_textureSize, _textureSize);
+
+    let atlases = _atlasesMap[atlasTag];
+    if (!atlases) {
+        _atlasesMap[atlasTag] = atlases = [];
     }
+    atlases.push(atlas);
+
     return atlas;
 }
 
 function beforeSceneLoad () {
     dynamicAtlasManager.reset();
+}
+
+function atlasesIsFull () {
+    return dynamicAtlasManager.atlasCount >= _maxAtlasCount;
+}
+
+function getCurrentAtlas (atlasTag) {
+    let atlases = _atlasesMap[atlasTag];
+    if (!atlases) {
+        _atlasesMap[atlasTag] = atlases = [];
+    }
+
+    if (atlases.length <= 0) {
+        return newAtlas(atlasTag);
+    } else {
+        return atlases[atlases.length - 1];
+    }
 }
 
 let _enabled = false;
@@ -76,7 +96,12 @@ let dynamicAtlasManager = {
      * @type {Number}
      */
     get atlasCount () {
-        return _atlases.length;
+        let totalNum = 0;
+        for (let key in _atlasesMap) {
+            totalNum += _atlasesMap[key].length;
+        }
+
+        return totalNum;
     },
 
     /**
@@ -128,6 +153,24 @@ let dynamicAtlasManager = {
      */
 
     /**
+     * !#zh 获得添加进某图集（根据tag区分）的图片的最大尺寸。
+     * @method getMaxFrameSize
+     * @param {String} atlasTag
+     */
+    getMaxFrameSize (atlasTag) {
+        return _maxFrameSizeMap[atlasTag || "default"] || _maxFrameSize;
+    },
+    /**
+     * !#zh 设置添加进某图集（根据tag区分）的图片的最大尺寸。
+     * @method setMaxFrameSize
+     * @param {String} atlasTag
+     * @param {Number} value
+     */
+    setMaxFrameSize (atlasTag, value) {
+        _maxFrameSizeMap[atlasTag] = value;
+    },
+
+    /**
      * !#en Append a sprite frame into the dynamic atlas.
      * !#zh 添加碎图进入动态图集。
      * @method insertSpriteFrame
@@ -136,15 +179,13 @@ let dynamicAtlasManager = {
      */
     insertSpriteFrame (spriteFrame) {
         if (CC_EDITOR) return null;
-        if (!_enabled || _atlasIndex === _maxAtlasCount ||
+        if (!_enabled || atlasesIsFull() ||
             !spriteFrame || spriteFrame._original) return null;
 
         if (!spriteFrame._texture.packable) return null;
 
-        let atlas = _atlases[_atlasIndex];
-        if (!atlas) {
-            atlas = newAtlas();
-        }
+        let atlasTag = spriteFrame["myTag"] || "default";
+        let atlas = getCurrentAtlas(atlasTag);
 
         // 如果能从当前图集中找到相同_uuid的图集块，则重用
         let frame = atlas.fetchSpriteFrame(spriteFrame);
@@ -153,8 +194,8 @@ let dynamicAtlasManager = {
         }
 
         frame = atlas.insertSpriteFrame(spriteFrame);
-        if (!frame && _atlasIndex !== _maxAtlasCount) {
-            atlas = newAtlas();
+        if (!frame && !atlasesIsFull()) {
+            atlas = newAtlas(atlasTag);
             return atlas.insertSpriteFrame(spriteFrame);
         }
         return frame;
@@ -166,11 +207,15 @@ let dynamicAtlasManager = {
      * @method reset
     */
     reset () {
-        for (let i = 0, l = _atlases.length; i < l; i++) {
-            _atlases[i].destroy();
+        for (let key in _atlasesMap) {
+            let atlases = _atlasesMap[key];
+
+            for (let i = 0, l = atlases.length; i < l; i++) {
+                atlases[i].destroy();
+            }
         }
-        _atlases.length = 0;
-        _atlasIndex = -1;
+
+        _atlasesMap = {};
     },
 
     deleteAtlasSpriteFrame (spriteFrame) {
@@ -182,13 +227,16 @@ let dynamicAtlasManager = {
 
     deleteAtlasTexture (texture) {
         if (texture) {
-            for (let i = _atlases.length - 1; i >= 0; i--) {
-                _atlases[i].deleteInnerTexture(texture);
+            for (let key in _atlasesMap) {
+                let atlases = _atlasesMap[key];
 
-                if (_atlases[i].isEmpty()) {
-                    _atlases[i].destroy();
-                    _atlases.splice(i, 1);
-                    _atlasIndex--;
+                for (let i = atlases.length - 1; i >= 0; i--) {
+                    atlases[i].deleteInnerTexture(texture);
+
+                    if (atlases[i].isEmpty()) {
+                        atlases[i].destroy();
+                        atlases.splice(i, 1);
+                    }
                 }
             }
         }
@@ -231,17 +279,20 @@ let dynamicAtlasManager = {
 
                 scroll.content = content;
 
-                for (let i = 0; i <= _atlasIndex; i++) {
-                    let node = new cc.Node('ATLAS');
-
-                    let texture = _atlases[i]._texture;
-                    let spriteFrame = new cc.SpriteFrame();
-                    spriteFrame.setTexture(_atlases[i]._texture);
-
-                    let sprite = node.addComponent(cc.Sprite);
-                    sprite.spriteFrame = spriteFrame;
-
-                    node.parent = content;
+                for (let key in _atlasesMap) {
+                    let atlases = _atlasesMap[key];
+        
+                    for (let i = 0, l = atlases.length; i < l; i++) {
+                        let node = new cc.Node('ATLAS');
+    
+                        let spriteFrame = new cc.SpriteFrame();
+                        spriteFrame.setTexture(atlases[i]._texture);
+    
+                        let sprite = node.addComponent(cc.Sprite);
+                        sprite.spriteFrame = spriteFrame;
+    
+                        node.parent = content;
+                    }
                 }
             }
             return _debugNode;
@@ -257,8 +308,12 @@ let dynamicAtlasManager = {
     update () {
         if (!this.enabled) return;
 
-        for (let i = 0; i <= _atlasIndex; i++) {
-            _atlases[i].update();
+        for (let key in _atlasesMap) {
+            let atlases = _atlasesMap[key];
+
+            for (let i = 0, l = atlases.length; i < l; i++) {
+                atlases[i].update();
+            }
         }
     },
 };
