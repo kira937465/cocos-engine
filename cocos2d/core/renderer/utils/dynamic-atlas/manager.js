@@ -11,8 +11,13 @@ let _textureBleeding = true;
 let _debugNode = null;
 
 function newAtlas (atlasTag) {
-    let atlas = new Atlas(_textureSize, _textureSize);
+    // 更新图集集合是否已满的标志位
+    _atlasesIsFull = dynamicAtlasManager.atlasCount >= _maxAtlasCount;
+    if (_atlasesIsFull) {
+        return null;
+    }
 
+    let atlas = new Atlas(_textureSize, _textureSize);
     let atlases = _atlasesMap[atlasTag];
     if (!atlases) {
         _atlasesMap[atlasTag] = atlases = [];
@@ -26,8 +31,9 @@ function beforeSceneLoad () {
     dynamicAtlasManager.reset();
 }
 
+let _atlasesIsFull = false;
 function atlasesIsFull () {
-    return dynamicAtlasManager.atlasCount >= _maxAtlasCount;
+    return _atlasesIsFull;
 }
 
 function getCurrentAtlas (atlasTag) {
@@ -189,18 +195,27 @@ let dynamicAtlasManager = {
         if (!spriteFrame._texture.packable) return null;
 
         let atlasTag = spriteFrame["myTag"] || "default";
-        let atlas = getCurrentAtlas(atlasTag);
 
-        // 如果能从当前图集中找到相同_uuid的图集块，则重用
-        let frame = atlas.fetchSpriteFrame(spriteFrame);
-        if (frame) {
-            return frame;
+        // 如果能从同类图集集合中找到相同_uuid的图集块，则重用
+        let atlases = _atlasesMap[atlasTag] || [];
+        for (let atlas of atlases) {
+            let frame = atlas.fetchSpriteFrame(spriteFrame);
+            if (frame) {
+                return frame;
+            }
         }
 
-        frame = atlas.insertSpriteFrame(spriteFrame);
+        let atlas = getCurrentAtlas(atlasTag);
+        if (!atlas) {
+            return null;
+        }
+
+        let frame = atlas.insertSpriteFrame(spriteFrame);
         if (!frame && !atlasesIsFull()) {
             atlas = newAtlas(atlasTag);
-            return atlas.insertSpriteFrame(spriteFrame);
+            if (atlas) {
+                return atlas.insertSpriteFrame(spriteFrame);
+            }
         }
         return frame;
     },
@@ -220,6 +235,7 @@ let dynamicAtlasManager = {
         }
 
         _atlasesMap = {};
+        _atlasesIsFull = false;
     },
 
     deleteAtlasSpriteFrame (spriteFrame) {
@@ -240,6 +256,8 @@ let dynamicAtlasManager = {
                     if (atlases[i].isEmpty()) {
                         atlases[i].destroy();
                         atlases.splice(i, 1);
+
+                        _atlasesIsFull = false;
                     }
                 }
             }
