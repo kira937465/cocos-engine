@@ -104,6 +104,10 @@ let dynamicAtlasManager = {
         return totalNum;
     },
 
+    get atlasesMap () {
+        return _atlasesMap;
+    },
+
     /**
      * !#en Is enable textureBleeding.
      * !#zh 是否开启 textureBleeding
