@@ -961,8 +961,6 @@ var Texture2D = cc.Class({
             this._getHash() !== dynamicAtlas.Atlas.DEFAULT_HASH) {
             this._packable = false;
             return;
-        } else if (this._image && w <= maxFrameSize && h <= maxFrameSize && this._getHash() === dynamicAtlas.Atlas.DEFAULT_HASH) {
-            this._packable = true;
         }
 
         if (this._image && this._image instanceof HTMLCanvasElement) {
