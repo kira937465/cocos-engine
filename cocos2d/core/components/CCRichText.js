@@ -535,7 +535,9 @@ let RichText = cc.Class({
         let fragmentWidth = labelWidth;
         let labelSegment;
 
-        if (this._lineOffsetX > 0 && fragmentWidth + this._lineOffsetX > this.maxWidth) {
+        // 去掉了"this._lineOffsetX > 0"的条件限制，解决iOS平台每行第一个label(末尾字符是空格)的宽度处于maxWidth边界时，后续label无法正常换行显示的问题
+        // 因为iOS平台label宽度计算 "abc "的宽度 != "abc"的宽度 + " "的宽度，所以需要从每行的第一个label就开始逐步增加单词和空格块来进行计算比较
+        if (fragmentWidth + this._lineOffsetX > this.maxWidth) {
             //concat previous line
             let checkStartIndex = 0;
             while (this._lineOffsetX <= this.maxWidth) {
