@@ -59,6 +59,9 @@ let _enabled = false;
 let dynamicAtlasManager = {
     Atlas: Atlas,
 
+    // 用于标识是否是定制的
+    isCustom: true,
+
     /**
      * !#en Enable or disable the dynamic atlas, see [Dynamic Atlas](https://docs.cocos.com/creator/2.4/manual/en/advanced-topics/dynamic-atlas.html) for details.
      * !#zh 开启或者关闭动态图集，详见 [动态合图](https://docs.cocos.com/creator/2.4/manual/zh/advanced-topics/dynamic-atlas.html)。
