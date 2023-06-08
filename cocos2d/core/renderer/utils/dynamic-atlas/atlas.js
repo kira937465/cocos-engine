@@ -6,7 +6,7 @@ function Atlas (width, height) {
     let texture = new RenderTexture();
     texture.initWithSize(width, height);
     texture.update();
-    
+
     this._texture = texture;
 
     this._x = space;
@@ -37,7 +37,7 @@ cc.js.mixin(Atlas.prototype, {
             sy += info.y;
         }
         else {
-            let width = texture.width, height = texture.height;        
+            let width = texture.width, height = texture.height;
 
             if ((this._x + width + space) > this._width) {
                 this._x = space;
@@ -91,7 +91,7 @@ cc.js.mixin(Atlas.prototype, {
             y: sy,
             texture: this._texture
         }
-        
+
         this._innerSpriteFrames.push(spriteFrame);
 
         return frame;
@@ -99,7 +99,7 @@ cc.js.mixin(Atlas.prototype, {
 
     fetchSpriteFrame(spriteFrame) {
         let texture = spriteFrame._texture;
-        let info = this._innerTextureInfos[texture._uuid];
+        let info = this.getInnerTextureInfo(texture._uuid);
         if (!info) {
             return null;
         }
@@ -113,6 +113,10 @@ cc.js.mixin(Atlas.prototype, {
         };
 
         return frame;
+    },
+
+    getInnerTextureInfo(uuid) {
+        return this._innerTextureInfos[uuid];
     },
 
     update () {
@@ -131,7 +135,7 @@ cc.js.mixin(Atlas.prototype, {
     isEmpty () {
         return this._count <= 0;
     },
-    
+
     reset () {
         this._x = space;
         this._y = space;

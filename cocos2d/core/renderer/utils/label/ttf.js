@@ -24,6 +24,7 @@
  ****************************************************************************/
 
 import Assembler2D from '../../assembler-2d';
+import murmurhash2 from '../../../../renderer/murmurhash2_gc';
 
 let textUtils = require('../../../utils/text-utils');
 const macro = require('../../../platform/CCMacro');
@@ -99,7 +100,7 @@ export default class TTFAssembler extends Assembler2D {
 
     updateRenderData (comp) {
         super.updateRenderData(comp);
-        
+
         if (!comp._vertsDirty) return;
 
         this._updateProperties(comp);
@@ -262,7 +263,7 @@ export default class TTFAssembler extends Assembler2D {
         if (_shadowComp) {
             this._setupShadow();
         }
-        
+
         if (_outlineComp) {
             this._setupOutline();
         }
@@ -344,8 +345,35 @@ export default class TTFAssembler extends Assembler2D {
         if (!frame._original) {
             frame.setRect(cc.rect(0, 0, _canvas.width, _canvas.height));
         }
-        // 给frame的texture计算一个新的_uuid值
-        frame._texture._uuid = comp.string + "_" + comp.node.color + "_" + comp.fontSize + comp.fontFamily;
+        // 给frame的texture计算uuid值，并判断是否已经在图集中
+        let properties = [
+            comp.string,
+            comp.horizontalAlign,
+            comp.verticalAlign,
+            comp.fontSize,
+            comp.useSystemFont ? comp.fontFamily : "", // 文本字体名称, 只在 useSystemFont 属性为 true 的时候生效。
+            comp.lineHeight,
+            comp.overflow,
+            comp.enableWrapText,
+            comp.font?.name || "",
+            comp.spacingX,
+            comp.enableBold,
+            comp.enableItalic,
+            comp.enableUnderline,
+            comp.underlineHeight,
+            comp.node.color.toHEX(),
+            _outlineComp?.width || 0,
+            _outlineColor.toHEX(),
+        ];
+        let uuid = properties.join("_");
+        uuid = murmurhash2(uuid, 666);
+        if (!this.checkIsInAtlas(uuid)) {
+            if (frame._original) {
+                frame._resetDynamicAtlasFrame();
+            }
+        }
+
+        frame._texture._uuid = uuid;
         this.packToDynamicAtlas(comp, frame);
     }
 
@@ -415,7 +443,7 @@ export default class TTFAssembler extends Assembler2D {
 
     _calculateShrinkFont (paragraphedStrings) {
         let paragraphLength = this._calculateParagraphLength(paragraphedStrings, _context);
-        
+
         let i = 0;
         let totalHeight = 0;
         let maxLength = 0;

@@ -223,6 +223,21 @@ let dynamicAtlasManager = {
         return frame;
     },
 
+    checkIsInAtlas(uuid) {
+        for (let key in _atlasesMap) {
+            let atlases = _atlasesMap[key];
+
+            for (let atlas of atlases) {
+                let textureInfo = atlas.getInnerTextureInfo(uuid);
+                if (textureInfo) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    },
+
     /**
      * !#en Resets all dynamic atlas, and the existing ones will be destroyed.
      * !#zh 重置所有动态图集，已有的动态图集会被销毁。
@@ -306,16 +321,16 @@ let dynamicAtlasManager = {
 
                 for (let key in _atlasesMap) {
                     let atlases = _atlasesMap[key];
-        
+
                     for (let i = 0, l = atlases.length; i < l; i++) {
                         let node = new cc.Node('ATLAS');
-    
+
                         let spriteFrame = new cc.SpriteFrame();
                         spriteFrame.setTexture(atlases[i]._texture);
-    
+
                         let sprite = node.addComponent(cc.Sprite);
                         sprite.spriteFrame = spriteFrame;
-    
+
                         node.parent = content;
                     }
                 }
